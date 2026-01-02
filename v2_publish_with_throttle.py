@@ -14,7 +14,7 @@ from github import Github
 # ============================
 # إعدادات أساسية (عدّل هذه فقط)
 # ============================
-GITHUB_TOKEN = os.getenv("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") or "PUT_YOUR_TOKEN_HERE"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or "PUT_YOUR_TOKEN_HERE"
 REPO_NAME = "2022annualreport/15"
 SITE_CANONICAL = "https://tgf-cluster.docs.stord.com"
 OUTPUT_DIR = "now/videos"
@@ -72,10 +72,11 @@ TEMPLATE = """<!DOCTYPE html>
 <meta name=\"description\" content=\"{{ description }}\">
 <link rel=\"canonical\" href=\"{{ canonical }}\"/>
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-<script async src=\"https://www.googletagmanager.com/gtag/js?id={{G-3L7L7QN2RW}}\"></script>
+<script async src=\"https://www.googletagmanager.com/gtag/js?id={{ ga_id }}\"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);} gtag('js', new Date());
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
   gtag('config', '{{ ga_id }}');
 </script>
 </head>
@@ -137,8 +138,8 @@ def build_page(keyword: str, all_slugs: List[str]):
 # ============================
 
 def push_files(pages):
-    g = Github(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)
-    repo = g.get_repo(15)
+    g = Github(GITHUB_TOKEN)
+    repo = g.get_repo(REPO_NAME)
 
     for slug, html in pages:
         path = f"{OUTPUT_DIR}/{slug}.html"
