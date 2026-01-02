@@ -1,4 +1,4 @@
-# v2_publish_with_throttle.py (FULLY FIXED VERSION)
+# v2_publish_with_throttle.py (FIXED VERSION)
 # نشر تدريجي + ربط داخلي + GitHub Actions جاهز
 
 import os
@@ -62,7 +62,7 @@ def choose_batch(words: List[str]) -> List[str]:
     return words[:n]
 
 # ============================
-# قالب HTML (مُصحّح تمامًا)
+# قالب HTML (مُصحّح بدون تحميل خارجي ل-GA)
 # ============================
 TEMPLATE = """<!DOCTYPE html>
 <html dir=\"rtl\" lang=\"ar\">
@@ -72,10 +72,9 @@ TEMPLATE = """<!DOCTYPE html>
 <meta name=\"description\" content=\"{{ description }}\">
 <link rel=\"canonical\" href=\"{{ canonical }}\"/>
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-<script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id }}"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);} 
+  function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', '{{ ga_id }}');
 </script>
@@ -88,7 +87,7 @@ TEMPLATE = """<!DOCTYPE html>
   <h2>{{ block_title }}</h2>
   <ul>
     {% for a in anchors %}
-    <li><a href="{{ a.href }}">{{ a.text }}</a></li>
+    <li><a href=\"{{ a.href }}\">{{ a.text }}</a></li>
     {% endfor %}
   </ul>
 </section>
