@@ -66,11 +66,13 @@ def create_post():
 </body>
 </html>'''
 
-    # تحقق أن BASE_DIR موجود وكـ مجلد
-    if not os.path.exists(BASE_DIR):
-        os.makedirs(BASE_DIR)
-    elif not os.path.isdir(BASE_DIR):
-        raise Exception(f"{BASE_DIR} موجود ولكنه ليس مجلد!")
+# تحقق أن BASE_DIR موجود وكـ مجلد
+if not os.path.isdir(BASE_DIR):
+    # إذا موجود كملف، احذف الملف أولًا
+    if os.path.exists(BASE_DIR):
+        os.remove(BASE_DIR)
+    os.makedirs(BASE_DIR)
+
 
     # كتابة الملف
     with open(filepath, 'w', encoding='utf-8') as f:
