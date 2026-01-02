@@ -11,9 +11,8 @@ from github import Github
 # ============================
 # إعدادات أساسية (تُقرأ من البيئة)
 # ============================
-# لا تضع التوكن هنا أبداً! سيقوم GitHub بتعطيله فوراً.
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-REPO_NAME = os.getenv("REPO_NAME") # يقرأ تلقائياً من Workflow
+REPO_NAME = os.getenv("REPO_NAME") 
 SITE_CANONICAL = "https://tgf-cluster.docs.stord.com"
 OUTPUT_DIR = "now/videos"
 
@@ -32,7 +31,6 @@ GLOBAL_KEYWORDS = [
 # ============================
 
 def slugify(text: str) -> str:
-    # تحويل النص لرابط متوافق
     text = text.strip().lower()
     text = re.sub(r"[^\w\u0600-\u06FF]+", "-", text)
     return text.strip("-")
@@ -99,16 +97,19 @@ def build_page(keyword: str, all_slugs: List[str]):
     description = f"مشاهدة {keyword} بجودة عالية {', '.join(mix)} فيديوهات رائجة."
     
     clean_keyword = slugify(keyword)
-    slug = f"{clean_keyword}-{random.randint(100,999)}"
+    slug = f"{clean_keyword}-{random.randint(1000,9999)}" # تم زيادة الرقم العشوائي لتجنب التكرار
     canonical = f"{SITE_CANONICAL}/{OUTPUT_DIR}/{slug}.html"
 
     anchors = []
-    pool = all_slugs[-10:] # ربط بآخر 10 صفحات تم إنشاؤها
-    for s in pool:
-        anchors.append({
-            "href": f"{SITE_CANONICAL}/{OUTPUT_DIR}/{s}.html",
-            "text": s.replace('-', ' ')
-        })
+    # اختيار عشوائي من الروابط الموجودة للربط الداخلي
+    if all_slugs:
+        sample_size = min(len(all_slugs), 10)
+        pool = random.sample(all_slugs, k=sample_size)
+        for s in pool:
+            anchors.append({
+                "href": f"{SITE_CANONICAL}/{OUTPUT_DIR}/{s}.html",
+                "text": s.replace('-', ' ')
+            })
 
     env = Environment(loader=BaseLoader())
     tpl = env.from_string(TEMPLATE)
@@ -124,17 +125,18 @@ def build_page(keyword: str, all_slugs: List[str]):
     return slug, html
 
 # ============================
-# الرفع إلى GitHub
+# الرفع وجلب الملفات من GitHub
 # ============================
 
-def push_files(pages):
-    if not GITHUB_TOKEN or not REPO_NAME:
-        print("Missing GITHUB_TOKEN or REPO_NAME environment variables.")
-        return
+def get_existing_slugs(repo):
+    """جلب قائمة الملفات الموجودة حالياً في المستودع"""
+    try:
+        contents = repo.get_contents(OUTPUT_DIR)
+        return [os.path.splitext(c.name)[0] for c in contents if c.name.endswith('.html')]
+    except:
+        return []
 
-    g = Github(GITHUB_TOKEN)
-    repo = g.get_repo(REPO_NAME)
-
+def push_files(pages, repo):
     for slug, html in pages:
         path = f"{OUTPUT_DIR}/{slug}.html"
         try:
@@ -145,30 +147,35 @@ def push_files(pages):
             except:
                 repo.create_file(path, f"Add {slug}", html)
                 print(f"Created: {path}")
-            time.sleep(0.5)
+            time.sleep(1) # تأخير بسيط لتجنب الـ Rate Limit
         except Exception as e:
             print(f"Failed to push {slug}: {e}")
 
 if __name__ == "__main__":
-    # تأكد من وجود المجلد محلياً (للأكشن)
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
+    if not GITHUB_TOKEN or not REPO_NAME:
+        print("Missing environment variables.")
+        exit(1)
+
+    g = Github(GITHUB_TOKEN)
+    repo = g.get_repo(REPO_NAME)
 
     trends = load_trends()
     if not trends:
         print("No keywords found.")
         exit(0)
 
+    # جلب الروابط القديمة من المستودع فعلياً
+    existing_slugs = get_existing_slugs(repo)
+    print(f"Found {len(existing_slugs)} existing pages.")
+
     batch = choose_batch(trends)
-    
-    # محاكاة السجلات السابقة للربط الداخلي
-    existing_slugs = [] 
     pages_to_upload = []
 
     for kw in batch:
         slug, html = build_page(kw, existing_slugs)
         pages_to_upload.append((slug, html))
+        # إضافة الرابط الجديد للقائمة لكي تستفيد منه الصفحات التالية في نفس الدفعة
         existing_slugs.append(slug)
 
-    push_files(pages_to_upload)
+    push_files(pages_to_upload, repo)
     print(f"Done. Processed {len(pages_to_upload)} keywords.")
