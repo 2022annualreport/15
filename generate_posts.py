@@ -2,10 +2,8 @@ import os
 import random
 from datetime import datetime
 
-# مجلد نشر الفيديوهات
 BASE_DIR = 'now/videos/'
 
-# كلمات المفتاحية
 keywords = {
     "global": [
         "sex xnxx",
@@ -23,24 +21,20 @@ keywords = {
     ]
 }
 
-# كلمات عامة إضافية
 general_words = ["porn", "xxx", "sex", "adult", "hot video", "hd video",
                  "trending", "popular", "watch online",
                  "سكس", "سكس عربي", "سكس مصري", "سكس مترجم",
                  "سكس نودز", "سكس عراقي", "نيك", "نيك عربي"]
 
-# دالة لإنشاء منشور
 def create_post():
     now = datetime.now()
     timestamp = now.strftime('%Y%m%d%H%M%S')
     filename = f'post_{timestamp}.html'
     filepath = os.path.join(BASE_DIR, filename)
 
-    # اختيار عنوان ووصف عشوائي
     title = random.choice(general_words + keywords['global'] + keywords['arabic'])
     description = random.choice(general_words + keywords['global'] + keywords['arabic'])
 
-    # إنشاء محتوى HTML مع سكيما فيديو
     html_content = f'''<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -66,19 +60,15 @@ def create_post():
 </body>
 </html>'''
 
-# تحقق أن BASE_DIR موجود وكـ مجلد
-if not os.path.isdir(BASE_DIR):
-    # إذا موجود كملف، احذف الملف أولًا
-    if os.path.exists(BASE_DIR):
-        os.remove(BASE_DIR)
-    os.makedirs(BASE_DIR)
+    # إنشاء المجلد بأمان
+    if not os.path.isdir(BASE_DIR):
+        if os.path.exists(BASE_DIR):
+            os.remove(BASE_DIR)
+        os.makedirs(BASE_DIR)
 
-
-    # كتابة الملف
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(html_content)
 
     print(f'تم إنشاء المنشور: {filename}')
 
-# مثال على إنشاء منشور واحد
 create_post()
