@@ -22,8 +22,6 @@ OUTPUT_DIR = "now/videos"
 PAGES_PER_RUN_MIN = 3
 PAGES_PER_RUN_MAX = 7
 
-GA_MEASUREMENT_ID = "G-3L7L7QN2RW"
-
 GLOBAL_KEYWORDS = [
     "porn", "xxx", "sex", "adult", "hot video", "hd video",
     "trending", "popular", "watch online",
@@ -172,4 +170,5 @@ if __name__ == "__main__":
 
     push_files(pages)
     print(f"Published {len(pages)} pages to {OUTPUT_DIR}")
+
 
