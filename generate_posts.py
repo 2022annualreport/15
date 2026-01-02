@@ -30,7 +30,6 @@ general_words = ["porn", "xxx", "sex", "adult", "hot video", "hd video",
                  "سكس نودز", "سكس عراقي", "نيك", "نيك عربي"]
 
 # دالة لإنشاء منشور
-
 def create_post():
     now = datetime.now()
     timestamp = now.strftime('%Y%m%d%H%M%S')
@@ -67,13 +66,17 @@ def create_post():
 </body>
 </html>'''
 
+    # تحقق أن BASE_DIR موجود وكـ مجلد
+    if not os.path.exists(BASE_DIR):
+        os.makedirs(BASE_DIR)
+    elif not os.path.isdir(BASE_DIR):
+        raise Exception(f"{BASE_DIR} موجود ولكنه ليس مجلد!")
+
     # كتابة الملف
-    os.makedirs(BASE_DIR, exist_ok=True)
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(html_content)
 
     print(f'تم إنشاء المنشور: {filename}')
-
 
 # مثال على إنشاء منشور واحد
 create_post()
