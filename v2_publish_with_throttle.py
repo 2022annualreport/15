@@ -1,4 +1,4 @@
-# v2_publish_with_throttle.py (FIXED VERSION)
+# v2_publish_with_throttle.py (FULLY FIXED VERSION)
 # نشر تدريجي + ربط داخلي + GitHub Actions جاهز
 
 import os
@@ -62,7 +62,7 @@ def choose_batch(words: List[str]) -> List[str]:
     return words[:n]
 
 # ============================
-# قالب HTML (مُصحّح)
+# قالب HTML (مُصحّح تمامًا)
 # ============================
 TEMPLATE = """<!DOCTYPE html>
 <html dir=\"rtl\" lang=\"ar\">
@@ -79,12 +79,6 @@ TEMPLATE = """<!DOCTYPE html>
   gtag('js', new Date());
   gtag('config', '{{ ga_id }}');
 </script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', '{{ ga_id }}');
-</script>
 </head>
 <body>
 <h1>{{ title }}</h1>
@@ -94,7 +88,7 @@ TEMPLATE = """<!DOCTYPE html>
   <h2>{{ block_title }}</h2>
   <ul>
     {% for a in anchors %}
-    <li><a href=\"{{ a.href }}\">{{ a.text }}</a></li>
+    <li><a href="{{ a.href }}">{{ a.text }}</a></li>
     {% endfor %}
   </ul>
 </section>
@@ -185,4 +179,3 @@ if __name__ == "__main__":
 
     push_files(pages)
     print(f"Published {len(pages)} pages to {OUTPUT_DIR}")
-
