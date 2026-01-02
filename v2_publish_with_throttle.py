@@ -1,6 +1,3 @@
-# v2_publish_with_throttle_fixed.py
-# نسخة مصححة من سكريبت النشر التدريجي + GitHub Actions
-
 import os
 import json
 import random
@@ -12,10 +9,11 @@ from jinja2 import Environment, BaseLoader
 from github import Github
 
 # ============================
-# إعدادات أساسية
+# إعدادات أساسية (تُقرأ من البيئة)
 # ============================
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # استخدم secret من GitHub Actions
-REPO_NAME = "2022annualreport/15"  # owner/repo
+# لا تضع التوكن هنا أبداً! سيقوم GitHub بتعطيله فوراً.
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+REPO_NAME = os.getenv("REPO_NAME") # يقرأ تلقائياً من Workflow
 SITE_CANONICAL = "https://tgf-cluster.docs.stord.com"
 OUTPUT_DIR = "now/videos"
 
@@ -24,8 +22,7 @@ PAGES_PER_RUN_MAX = 7
 GA_MEASUREMENT_ID = "G-3L7L7QN2RW"
 
 GLOBAL_KEYWORDS = [
-    "porn", "xxx", "sex", "adult", "hot video", "hd video",
-    "trending", "popular", "watch online",
+    "trending", "popular", "watch online", "hd video",
     "سكس", "سكس عربي", "سكس مصري", "سكس مترجم",
     "سكس نودز", "سكس عراقي", "نيك", "نيك عربي"
 ]
@@ -35,28 +32,31 @@ GLOBAL_KEYWORDS = [
 # ============================
 
 def slugify(text: str) -> str:
+    # تحويل النص لرابط متوافق
     text = text.strip().lower()
     text = re.sub(r"[^\w\u0600-\u06FF]+", "-", text)
     return text.strip("-")
 
-
 def load_trends(path: str = "trending_keywords.json") -> List[str]:
     if not os.path.exists(path):
+        print(f"Error: {path} not found.")
         return []
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    words = []
-    for arr in data.values():
-        for w in arr:
-            if len(w) >= 3:
-                words.append(w)
-    random.shuffle(words)
-    return words
-
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        words = []
+        for arr in data.values():
+            for w in arr:
+                if len(w) >= 3:
+                    words.append(w)
+        random.shuffle(words)
+        return words
+    except Exception as e:
+        print(f"JSON Load Error: {e}")
+        return []
 
 def choose_batch(words: List[str]) -> List[str]:
-    if not words:
-        return []
+    if not words: return []
     n = random.randint(PAGES_PER_RUN_MIN, PAGES_PER_RUN_MAX)
     return words[:n]
 
@@ -64,13 +64,13 @@ def choose_batch(words: List[str]) -> List[str]:
 # قالب HTML
 # ============================
 TEMPLATE = """<!DOCTYPE html>
-<html dir=\"rtl\" lang=\"ar\">
+<html dir="rtl" lang="ar">
 <head>
-<meta charset=\"utf-8\"/>
+<meta charset="utf-8"/>
 <title>{{ title }}</title>
-<meta name=\"description\" content="{{ description }}">
-<link rel=\"canonical\" href="{{ canonical }}"/>
-<meta name=\"viewport\" content="width=device-width, initial-scale=1">
+<meta name="description" content="{{ description }}">
+<link rel="canonical" href="{{ canonical }}"/>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id }}"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -89,28 +89,26 @@ TEMPLATE = """<!DOCTYPE html>
     {% endfor %}
   </ul>
 </section>
-<footer>
-  <p>© {{ year }}</p>
-</footer>
+<footer><p>© {{ year }}</p></footer>
 </body>
 </html>"""
-
-# ============================
-# منطق التوليد
-# ============================
 
 def build_page(keyword: str, all_slugs: List[str]):
     mix = random.sample(GLOBAL_KEYWORDS, k=min(4, len(GLOBAL_KEYWORDS)))
     title = f"{keyword} فيديو سكس {', '.join(mix)}"
-    description = f"مشاهدة {keyword} بجودة عالية {', '.join(mix)} فيديوهات سكس رائجة ومحدثة باستمرار."
-    slug = slugify(f"{keyword}-{'-'.join(mix)}")
+    description = f"مشاهدة {keyword} بجودة عالية {', '.join(mix)} فيديوهات رائجة."
+    
+    clean_keyword = slugify(keyword)
+    slug = f"{clean_keyword}-{random.randint(100,999)}"
     canonical = f"{SITE_CANONICAL}/{OUTPUT_DIR}/{slug}.html"
 
-    pool = [s for s in all_slugs if s != slug]
-    random.shuffle(pool)
     anchors = []
-    for s in pool[:5]:
-        anchors.append({"href": f"{SITE_CANONICAL}/{OUTPUT_DIR}/{s}.html", "text": s.replace('-', ' ')})
+    pool = all_slugs[-10:] # ربط بآخر 10 صفحات تم إنشاؤها
+    for s in pool:
+        anchors.append({
+            "href": f"{SITE_CANONICAL}/{OUTPUT_DIR}/{s}.html",
+            "text": s.replace('-', ' ')
+        })
 
     env = Environment(loader=BaseLoader())
     tpl = env.from_string(TEMPLATE)
@@ -119,56 +117,58 @@ def build_page(keyword: str, all_slugs: List[str]):
         description=description,
         canonical=canonical,
         ga_id=GA_MEASUREMENT_ID,
-        block_title=random.choice(["قد يعجبك أيضًا", "مشاهدة المزيد", "مقاطع شائعة"]),
+        block_title=random.choice(["قد يعجبك أيضاً", "مشاهدة المزيد", "مقاطع شائعة"]),
         anchors=anchors,
         year=datetime.utcnow().year
     )
     return slug, html
 
 # ============================
-# GitHub رفع
+# الرفع إلى GitHub
 # ============================
 
 def push_files(pages):
+    if not GITHUB_TOKEN or not REPO_NAME:
+        print("Missing GITHUB_TOKEN or REPO_NAME environment variables.")
+        return
+
     g = Github(GITHUB_TOKEN)
     repo = g.get_repo(REPO_NAME)
 
     for slug, html in pages:
         path = f"{OUTPUT_DIR}/{slug}.html"
         try:
-            existing = repo.get_contents(path)
-            repo.update_file(existing.path, f"update {slug}", html, existing.sha)
-        except Exception:
-            repo.create_file(path, f"add {slug}", html)
-        time.sleep(1)
-
-# ============================
-# تشغيل
-# ============================
+            try:
+                existing = repo.get_contents(path)
+                repo.update_file(path, f"Update {slug}", html, existing.sha)
+                print(f"Updated: {path}")
+            except:
+                repo.create_file(path, f"Add {slug}", html)
+                print(f"Created: {path}")
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"Failed to push {slug}: {e}")
 
 if __name__ == "__main__":
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    # تأكد من وجود المجلد محلياً (للأكشن)
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     trends = load_trends()
     if not trends:
-        print("No trending keywords found.")
+        print("No keywords found.")
         exit(0)
 
     batch = choose_batch(trends)
+    
+    # محاكاة السجلات السابقة للربط الداخلي
+    existing_slugs = [] 
+    pages_to_upload = []
 
-    existing_slugs = []
-    for root, _, files in os.walk(OUTPUT_DIR):
-        for f in files:
-            if f.endswith('.html'):
-                existing_slugs.append(os.path.splitext(f)[0])
-
-    pages = []
     for kw in batch:
         slug, html = build_page(kw, existing_slugs)
-        with open(os.path.join(OUTPUT_DIR, f"{slug}.html"), "w", encoding="utf-8") as f:
-            f.write(html)
-        pages.append((slug, html))
+        pages_to_upload.append((slug, html))
         existing_slugs.append(slug)
 
-    push_files(pages)
-    print(f"Published {len(pages)} pages to {OUTPUT_DIR}")
+    push_files(pages_to_upload)
+    print(f"Done. Processed {len(pages_to_upload)} keywords.")
