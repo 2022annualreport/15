@@ -72,7 +72,13 @@ TEMPLATE = """<!DOCTYPE html>
 <meta name=\"description\" content=\"{{ description }}\">
 <link rel=\"canonical\" href=\"{{ canonical }}\"/>
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-<script async src=\"https://www.googletagmanager.com/gtag/js?id={{ ga_id }}\"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id }}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);} 
+  gtag('js', new Date());
+  gtag('config', '{{ ga_id }}');
+</script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -179,3 +185,4 @@ if __name__ == "__main__":
 
     push_files(pages)
     print(f"Published {len(pages)} pages to {OUTPUT_DIR}")
+
